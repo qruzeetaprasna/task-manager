@@ -11,26 +11,27 @@
         <link rel="preconnect" href="https://fonts.bunny.net">
         <link href="https://fonts.bunny.net/css?family=inter:400,500,600,700&display=swap" rel="stylesheet" />
 
-        <!-- Scripts -->
+        <!-- Scripts & Styles -->
         @vite(['resources/css/app.css', 'resources/js/app.js'])
     </head>
-    <body class="font-sans antialiased bg-gray-100 text-gray-900">
-        <div class="min-h-screen bg-gray-100">
+    <body class="font-sans antialiased bg-gray-50 text-gray-900">
+        <div class="flex flex-col min-h-screen">
+
             @include('layouts.navigation')
 
-            <!-- Page Heading -->
-            @isset($header)
-                <header class="bg-white shadow">
-                    <div class="max-w-[960px] mx-auto py-6 px-6">
-                        {{ $header }}
-                    </div>
-                </header>
-            @endisset
-
             <!-- Page Content -->
-            <main>
+            <main class="flex-1">
                 {{ $slot }}
             </main>
+
+            <!-- Footer -->
+            <footer class="bg-white border-t border-gray-200 mt-12">
+                <div class="max-w-[960px] mx-auto px-6 py-4 flex items-center justify-between text-xs text-gray-400">
+                    <span>&copy; {{ date('Y') }} TugasKu. Hak Cipta Dilindungi.</span>
+                    <span>Aplikasi Manajemen Tugas Produktif</span>
+                </div>
+            </footer>
+
         </div>
     </body>
 </html>

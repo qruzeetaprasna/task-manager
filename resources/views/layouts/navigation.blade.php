@@ -1,82 +1,53 @@
-<nav x-data="{ open: false }" class="bg-white border-b border-gray-200">
-    <!-- Primary Navigation Menu -->
+<nav class="bg-white border-b border-gray-200">
     <div class="max-w-[960px] mx-auto px-6">
-        <div class="flex justify-between h-16">
-            <div class="flex items-center">
-                <!-- Logo TugasKu -->
-                <div class="shrink-0 flex items-center">
-                    <a href="{{ Route::has('tasks.index') ? route('tasks.index') : url('/tasks') }}" class="text-[20px] font-bold text-indigo-600 tracking-tight">
-                        TugasKu
-                    </a>
-                </div>
+        <div class="flex items-center justify-between h-16">
 
-                <!-- Navigation Links -->
-                <div class="hidden space-x-8 sm:-my-px sm:ms-8 sm:flex h-full">
+            {{-- Kiri: Logo + Tautan navigasi --}}
+            <div class="flex items-center gap-8">
+                <a href="{{ Route::has('tasks.index') ? route('tasks.index') : url('/tasks') }}"
+                   class="text-indigo-600 font-bold text-xl tracking-tight shrink-0">
+                    TugasKu
+                </a>
+
+                <div class="flex items-center h-16">
                     <a href="{{ Route::has('tasks.index') ? route('tasks.index') : url('/tasks') }}"
-                       class="inline-flex items-center px-1 pt-1 border-b-2 border-indigo-600 text-[15px] font-medium text-gray-900">
+                       class="inline-flex items-center h-full px-1 text-sm font-medium text-gray-900 border-b-2 border-indigo-600 mr-6">
                         Tugas
                     </a>
+                    @if (Auth::user()?->isAdmin())
+                        <a href="#"
+                           class="inline-flex items-center h-full px-1 text-sm font-medium text-gray-500 border-b-2 border-transparent hover:text-gray-700 hover:border-gray-300 transition-colors">
+                            Kelola Pengguna
+                        </a>
+                    @endif
                 </div>
             </div>
 
-            <!-- Right Side: Badge Admin, User Name, Keluar -->
-            <div class="hidden sm:flex sm:items-center sm:gap-4">
+            {{-- Kanan: Badge, Nama, Avatar, Keluar --}}
+            <div class="flex items-center gap-3">
                 @if (Auth::user()?->isAdmin())
-                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-[12px] font-bold bg-violet-100 text-violet-800">
-                        Admin
+                    <span class="px-2 py-1 bg-indigo-600 text-white text-xs font-bold rounded tracking-wider uppercase">
+                        ADMIN
                     </span>
                 @endif
 
-                <span class="text-[15px] font-medium text-gray-700">
-                    {{ Auth::user()?->name }}
-                </span>
+                <span class="text-sm text-gray-700 font-medium">{{ Auth::user()?->name }}</span>
+
+                <div class="w-8 h-8 bg-gray-200 rounded-full flex items-center justify-center shrink-0">
+                    <svg class="w-5 h-5 text-gray-500" fill="currentColor" viewBox="0 0 24 24">
+                        <path d="M12 12c2.7 0 4.8-2.1 4.8-4.8S14.7 2.4 12 2.4 7.2 4.5 7.2 7.2 9.3 12 12 12zm0 2.4c-3.2 0-9.6 1.6-9.6 4.8v2.4h19.2v-2.4c0-3.2-6.4-4.8-9.6-4.8z"/>
+                    </svg>
+                </div>
 
                 <form method="POST" action="{{ route('logout') }}" class="inline">
                     @csrf
-                    <button type="submit" class="text-[15px] font-medium text-gray-500 hover:text-gray-900 focus:outline-none transition ease-in-out duration-150">
+                    <button type="submit"
+                            class="text-sm text-gray-500 hover:text-gray-900 font-medium transition-colors focus:outline-none">
                         Keluar
                     </button>
                 </form>
             </div>
 
-            <!-- Hamburger for Mobile -->
-            <div class="-me-2 flex items-center sm:hidden">
-                <button @click="open = ! open" class="inline-flex items-center justify-center p-2 rounded-md text-gray-400 hover:text-gray-500 hover:bg-gray-100 focus:outline-none focus:bg-gray-100 focus:text-gray-500 transition duration-150 ease-in-out">
-                    <svg class="h-6 w-6" stroke="currentColor" fill="none" viewBox="0 0 24 24">
-                        <path :class="{'hidden': open, 'inline-flex': ! open }" class="inline-flex" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16" />
-                        <path :class="{'hidden': ! open, 'inline-flex': open }" class="hidden" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
-                    </svg>
-                </button>
-            </div>
-        </div>
-    </div>
-
-    <!-- Responsive Navigation Menu -->
-    <div :class="{'block': open, 'hidden': ! open}" class="hidden sm:hidden border-t border-gray-200">
-        <div class="pt-2 pb-3 space-y-1 px-4">
-            <a href="{{ Route::has('tasks.index') ? route('tasks.index') : url('/tasks') }}"
-               class="block py-2 text-base font-medium text-indigo-600">
-                Tugas
-            </a>
-        </div>
-
-        <!-- Responsive Settings Options -->
-        <div class="pt-4 pb-3 border-t border-gray-200 px-4">
-            <div class="flex items-center gap-2 mb-3">
-                <span class="font-medium text-base text-gray-800">{{ Auth::user()?->name }}</span>
-                @if (Auth::user()?->isAdmin())
-                    <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-bold bg-violet-100 text-violet-800">
-                        Admin
-                    </span>
-                @endif
-            </div>
-
-            <form method="POST" action="{{ route('logout') }}">
-                @csrf
-                <button type="submit" class="block w-full text-left py-2 text-base font-medium text-gray-600 hover:text-gray-900">
-                    Keluar
-                </button>
-            </form>
         </div>
     </div>
 </nav>
