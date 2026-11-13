@@ -29,3 +29,7 @@ Thumbs.db
 /docs/learning
 /AGENTS.md
 /CLAUDE.md
+boost.json
+opencode.json
+.agents
+/.github
