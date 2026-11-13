@@ -26,7 +26,7 @@ class TaskPolicy
     {
         $is_creator = $task->created_by === $user->id;
 
-        return $is_creator || $$task->assignees()->where('user_id', $user->id)->exists();
+        return $is_creator || $task->assignees()->where('user_id', $user->id)->exists();
     }
 
 
@@ -40,7 +40,7 @@ class TaskPolicy
     {
         $is_creator = $task->created_by === $user->id;
 
-        return $is_creator || $$task->assignees()->where('user_id', $user->id)->exists();
+        return $is_creator || $task->assignees()->where('user_id', $user->id)->exists();
     }
 
 
