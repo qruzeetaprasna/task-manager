@@ -6,15 +6,15 @@ use App\Http\Controllers\TaskAssigneeController;
 use App\Http\Controllers\TaskController;
 use Illuminate\Support\Facades\Route;
 
-Route::get('/', function () {
-    return view('welcome');
-});
-
 Route::get('/dashboard', function () {
     return view('dashboard');
 })->middleware(['auth', 'verified'])->name('dashboard');
 
 Route::middleware('auth')->group(function () {
+    Route::get('/', function () {
+        return redirect()->route('tasks.index');
+    });
+
     Route::get('/admin/users', [AdminUserController::class, 'index'])->name('admin.users.index');
     Route::patch('/admin/users/{user}/role', [AdminUserController::class, 'updateRole'])->name('admin.users.update-role');
 
