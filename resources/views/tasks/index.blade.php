@@ -81,7 +81,7 @@
              "
              class="flex items-start justify-between mb-5">
             <div>
-                <h1 class="text-3xl font-bold text-gray-900 leading-tight">Tugas</h1>
+                <h1 class="text-[28px] font-bold text-gray-900 leading-tight">Tugas</h1>
                 <p class="text-sm text-gray-500 mt-0.5">
                     @if (Auth::user()->isAdmin())
                         Menampilkan semua tugas tim.
@@ -306,6 +306,8 @@
                         isDone: {{ $task->is_done ? 'true' : 'false' }},
                         deleted: false,
                         updating: false,
+                        assigneeStoreUrl: @js(route('tasks.assignees.store', $task)),
+                        assigneeDestroyUrlTemplate: @js(route('tasks.assignees.destroy', [$task, '__ASSIGNEE_ID__'])),
                         assignees: @js($task->assignees->sortBy('name', SORT_NATURAL | SORT_FLAG_CASE)->map(fn($u) => ['id' => $u->id, 'name' => $u->name])->values()),
                         allUsers: @js($users->map(fn($u) => ['id' => $u->id, 'name' => $u->name])->values()),
                         openAddAssignee: false,
@@ -320,7 +322,7 @@
                             this.addingAssignee = true;
                             try {
                                 const csrfToken = document.querySelector('meta[name=\'csrf-token\']')?.getAttribute('content');
-                                const response = await fetch(`/tasks/${this.id}/assignees`, {
+                                const response = await fetch(this.assigneeStoreUrl, {
                                     method: 'POST',
                                     headers: {
                                         'Content-Type': 'application/json',
@@ -351,7 +353,8 @@
                             this.removingAssigneeId = userId;
                             try {
                                 const csrfToken = document.querySelector('meta[name=\'csrf-token\']')?.getAttribute('content');
-                                const response = await fetch(`/tasks/${this.id}/assignees/${userId}`, {
+                                const destroyUrl = this.assigneeDestroyUrlTemplate.replace('__ASSIGNEE_ID__', encodeURIComponent(userId));
+                                const response = await fetch(destroyUrl, {
                                     method: 'DELETE',
                                     headers: {
                                         'Accept': 'application/json',
@@ -423,12 +426,12 @@
                                        :checked="isDone"
                                        @change="toggleDone()"
                                        :disabled="updating"
-                                       class="w-5 h-5 rounded border-gray-300 text-indigo-600 accent-indigo-600 focus:ring-indigo-500 cursor-pointer disabled:opacity-50"
+                                       class="w-[22px] h-[22px] rounded border-gray-300 text-indigo-600 accent-indigo-600 focus:ring-indigo-500 cursor-pointer disabled:opacity-50"
                                        aria-label="Status tugas: {{ $task->title }}">
                             @else
                                 <input type="checkbox"
                                        :checked="isDone"
-                                       class="w-5 h-5 rounded border-gray-300 text-indigo-600 accent-indigo-600 cursor-not-allowed opacity-60"
+                                       class="w-[22px] h-[22px] rounded border-gray-300 text-indigo-600 accent-indigo-600 cursor-not-allowed opacity-60"
                                        aria-label="Status tugas: {{ $task->title }}"
                                        disabled>
                             @endcan
@@ -439,13 +442,13 @@
 
                             {{-- Judul + pill Selesai --}}
                             <div class="flex items-center gap-2 flex-wrap">
-                                <h3 class="text-[15px] font-semibold leading-snug transition-colors"
+                                <h3 class="text-[17px] font-semibold leading-snug transition-colors"
                                     :class="isDone ? 'text-gray-400 line-through' : 'text-gray-900'"
                                     x-text="title">
                                     {{ $task->title }}
                                 </h3>
                                 <span x-show="isDone"
-                                      class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold bg-green-100 text-green-700">
+                                      class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold bg-green-100 text-green-800">
                                     Selesai
                                 </span>
                             </div>
@@ -504,6 +507,8 @@
                                         <button type="button"
                                                 @click="openAddAssignee = !openAddAssignee"
                                                 :disabled="addingAssignee"
+                                                :aria-expanded="openAddAssignee"
+                                                :aria-controls="'assignee-options-' + id"
                                                 class="inline-flex items-center gap-1 text-xs font-medium px-2.5 py-0.5 rounded-full border border-dashed border-indigo-300 text-indigo-600 hover:text-indigo-800 hover:border-indigo-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-1 transition-colors disabled:opacity-50">
                                             <template x-if="!addingAssignee">
                                                 <span>+ Tambah</span>
@@ -522,6 +527,7 @@
                                         {{-- Dropdown pilihan anggota --}}
                                         <div x-show="openAddAssignee"
                                              x-cloak
+                                             id="assignee-options-{{ $task->id }}"
                                              x-transition:enter="transition ease-out duration-100"
                                              x-transition:enter-start="transform opacity-0 scale-95"
                                              x-transition:enter-end="transform opacity-100 scale-100"
