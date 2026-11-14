@@ -2,6 +2,10 @@
     @php
         $pageAdminCount = $users->getCollection()->where('role', 'admin')->count();
         $pageMemberCount = $users->getCollection()->where('role', 'member')->count();
+        $showCreateUserModal = $errors->has('name')
+            || $errors->has('email')
+            || $errors->has('password')
+            || ($errors->has('role') && old('name') !== null && old('email') !== null);
     @endphp
 
     <div class="mx-auto max-w-[960px] overflow-x-hidden px-6 py-8">
@@ -12,11 +16,29 @@
                     Manajemen akun anggota tim dan penetapan peran pengguna.
                 </p>
             </div>
+
+            <x-primary-button
+                type="button"
+                x-data=""
+                x-on:click="$dispatch('open-modal', 'create-user-modal')"
+                class="min-h-11 rounded-lg bg-indigo-600 px-5 text-sm normal-case hover:bg-indigo-700 focus:bg-indigo-700 active:bg-indigo-800"
+            >
+                <svg class="me-2 h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 5v14m7-7H5" />
+                </svg>
+                Tambah User
+            </x-primary-button>
         </div>
 
         @if (session('success'))
             <div class="mb-6 rounded-lg border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-800" role="status">
                 {{ session('success') }}
+            </div>
+        @endif
+
+        @if (session('status'))
+            <div class="mb-6 rounded-lg border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-800" role="status">
+                {{ session('status') }}
             </div>
         @endif
 
@@ -204,4 +226,123 @@
             </div>
         </section>
     </div>
+
+    <x-modal name="create-user-modal" :show="$showCreateUserModal" focusable>
+        <form method="POST" action="{{ route('admin.users.store') }}" class="p-6">
+            @csrf
+
+            <div class="flex items-start justify-between gap-4">
+                <div>
+                    <h2 class="text-lg font-semibold text-gray-900">Tambah User Baru</h2>
+                    <p class="mt-1 text-sm text-gray-600">Buat akun baru dan tentukan perannya dalam tim.</p>
+                </div>
+                <button
+                    type="button"
+                    x-on:click="$dispatch('close')"
+                    aria-label="Tutup form tambah user"
+                    class="rounded-md p-2 text-gray-500 hover:bg-gray-100 hover:text-gray-700 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                >
+                    <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18 18 6M6 6l12 12" />
+                    </svg>
+                </button>
+            </div>
+
+            <div class="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-2">
+                <div>
+                    <x-input-label for="new-user-name" value="Nama" />
+                    <input
+                        id="new-user-name"
+                        name="name"
+                        type="text"
+                        value="{{ old('name') }}"
+                        maxlength="255"
+                        autocomplete="name"
+                        required
+                        aria-invalid="{{ $errors->has('name') ? 'true' : 'false' }}"
+                        @class([
+                            'mt-1 h-11 w-full rounded-lg border px-3 text-sm text-gray-900 shadow-sm focus:outline-none focus:ring-2',
+                            'border-red-500 focus:border-red-500 focus:ring-red-500' => $errors->has('name'),
+                            'border-gray-300 focus:border-indigo-500 focus:ring-indigo-500' => ! $errors->has('name'),
+                        ])
+                    >
+                    @error('name')
+                        <p class="mt-1 text-[13px] text-red-600" role="alert">{{ $message }}</p>
+                    @enderror
+                </div>
+
+                <div>
+                    <x-input-label for="new-user-email" value="Email" />
+                    <input
+                        id="new-user-email"
+                        name="email"
+                        type="email"
+                        value="{{ old('email') }}"
+                        autocomplete="email"
+                        required
+                        aria-invalid="{{ $errors->has('email') ? 'true' : 'false' }}"
+                        @class([
+                            'mt-1 h-11 w-full rounded-lg border px-3 text-sm text-gray-900 shadow-sm focus:outline-none focus:ring-2',
+                            'border-red-500 focus:border-red-500 focus:ring-red-500' => $errors->has('email'),
+                            'border-gray-300 focus:border-indigo-500 focus:ring-indigo-500' => ! $errors->has('email'),
+                        ])
+                    >
+                    @error('email')
+                        <p class="mt-1 text-[13px] text-red-600" role="alert">{{ $message }}</p>
+                    @enderror
+                </div>
+
+                <div>
+                    <x-input-label for="new-user-password" value="Password" />
+                    <input
+                        id="new-user-password"
+                        name="password"
+                        type="password"
+                        minlength="8"
+                        autocomplete="new-password"
+                        required
+                        aria-invalid="{{ $errors->has('password') ? 'true' : 'false' }}"
+                        @class([
+                            'mt-1 h-11 w-full rounded-lg border px-3 text-sm text-gray-900 shadow-sm focus:outline-none focus:ring-2',
+                            'border-red-500 focus:border-red-500 focus:ring-red-500' => $errors->has('password'),
+                            'border-gray-300 focus:border-indigo-500 focus:ring-indigo-500' => ! $errors->has('password'),
+                        ])
+                    >
+                    @error('password')
+                        <p class="mt-1 text-[13px] text-red-600" role="alert">{{ $message }}</p>
+                    @enderror
+                </div>
+
+                <div>
+                    <x-input-label for="new-user-role" value="Role" />
+                    <select
+                        id="new-user-role"
+                        name="role"
+                        required
+                        aria-invalid="{{ $errors->has('role') ? 'true' : 'false' }}"
+                        @class([
+                            'mt-1 h-11 w-full rounded-lg border bg-white px-3 text-sm text-gray-900 shadow-sm focus:outline-none focus:ring-2',
+                            'border-red-500 focus:border-red-500 focus:ring-red-500' => $errors->has('role'),
+                            'border-gray-300 focus:border-indigo-500 focus:ring-indigo-500' => ! $errors->has('role'),
+                        ])
+                    >
+                        <option value="member" @selected(old('role', 'member') === 'member')>Member</option>
+                        <option value="admin" @selected(old('role') === 'admin')>Admin</option>
+                    </select>
+                    @error('role')
+                        <p class="mt-1 text-[13px] text-red-600" role="alert">{{ $message }}</p>
+                    @enderror
+                </div>
+            </div>
+
+            <div class="mt-6 flex justify-end gap-3">
+                <x-secondary-button type="button" x-on:click="$dispatch('close')">
+                    Batal
+                </x-secondary-button>
+                <x-primary-button class="min-h-11 rounded-lg bg-indigo-600 px-5 text-sm normal-case hover:bg-indigo-700 focus:bg-indigo-700 active:bg-indigo-800">
+                    Tambah User
+                </x-primary-button>
+            </div>
+        </form>
+    </x-modal>
 </x-app-layout>
