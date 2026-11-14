@@ -306,6 +306,73 @@
                         isDone: {{ $task->is_done ? 'true' : 'false' }},
                         deleted: false,
                         updating: false,
+                        assignees: @js($task->assignees->sortBy('name', SORT_NATURAL | SORT_FLAG_CASE)->map(fn($u) => ['id' => $u->id, 'name' => $u->name])->values()),
+                        allUsers: @js($users->map(fn($u) => ['id' => $u->id, 'name' => $u->name])->values()),
+                        openAddAssignee: false,
+                        addingAssignee: false,
+                        removingAssigneeId: null,
+                        get availableUsers() {
+                            const currentIds = this.assignees.map(a => a.id);
+                            return this.allUsers.filter(u => !currentIds.includes(u.id));
+                        },
+                        async addAssignee(userId) {
+                            if (!userId || this.addingAssignee) return;
+                            this.addingAssignee = true;
+                            try {
+                                const csrfToken = document.querySelector('meta[name=\'csrf-token\']')?.getAttribute('content');
+                                const response = await fetch(`/tasks/${this.id}/assignees`, {
+                                    method: 'POST',
+                                    headers: {
+                                        'Content-Type': 'application/json',
+                                        'Accept': 'application/json',
+                                        'X-CSRF-TOKEN': csrfToken
+                                    },
+                                    body: JSON.stringify({ user_id: userId })
+                                });
+
+                                if (response.ok) {
+                                    const data = await response.json();
+                                    this.assignees = data.assignees;
+                                    this.openAddAssignee = false;
+                                    window.dispatchEvent(new CustomEvent('toast', { detail: 'Penanggung jawab berhasil ditambahkan.' }));
+                                } else {
+                                    const data = await response.json().catch(() => ({}));
+                                    const errMsg = (data.errors && data.errors.user_id && data.errors.user_id[0]) || data.message || 'Gagal menambahkan penanggung jawab.';
+                                    alert(errMsg);
+                                }
+                            } catch (e) {
+                                alert('Gagal menghubungi server.');
+                            } finally {
+                                this.addingAssignee = false;
+                            }
+                        },
+                        async removeAssignee(userId, userName) {
+                            if (this.removingAssigneeId) return;
+                            this.removingAssigneeId = userId;
+                            try {
+                                const csrfToken = document.querySelector('meta[name=\'csrf-token\']')?.getAttribute('content');
+                                const response = await fetch(`/tasks/${this.id}/assignees/${userId}`, {
+                                    method: 'DELETE',
+                                    headers: {
+                                        'Accept': 'application/json',
+                                        'X-CSRF-TOKEN': csrfToken
+                                    }
+                                });
+
+                                if (response.ok) {
+                                    const data = await response.json();
+                                    this.assignees = data.assignees;
+                                    window.dispatchEvent(new CustomEvent('toast', { detail: 'Penanggung jawab berhasil dihapus.' }));
+                                } else {
+                                    const data = await response.json().catch(() => ({}));
+                                    alert(data.message || 'Gagal menghapus penanggung jawab.');
+                                }
+                            } catch (e) {
+                                alert('Gagal menghubungi server.');
+                            } finally {
+                                this.removingAssigneeId = null;
+                            }
+                        },
                         async toggleDone() {
                             if (this.updating) return;
                             this.updating = true;
@@ -405,28 +472,82 @@
                             <div class="flex items-center gap-2 mt-2 flex-wrap text-sm">
                                 <span class="text-xs text-gray-500 font-medium shrink-0">Penanggung jawab:</span>
 
-                                @if ($task->assignees->isEmpty())
+                                <template x-if="assignees.length === 0">
                                     <span class="text-xs text-gray-400 italic">belum ada</span>
-                                @else
-                                    @foreach ($task->assignees as $assignee)
-                                        <span class="inline-flex items-center gap-1 bg-indigo-50 text-indigo-700 text-xs font-medium px-2.5 py-1 rounded-full">
-                                            {{ $assignee->name }}
-                                            @can('manageAssignees', $task)
-                                                <button type="button"
-                                                        class="ml-0.5 text-indigo-400 hover:text-indigo-700 focus:outline-none leading-none"
-                                                        aria-label="Hapus {{ $assignee->name }} dari penanggung jawab">
-                                                    &times;
-                                                </button>
-                                            @endcan
-                                        </span>
-                                    @endforeach
-                                @endif
+                                </template>
+
+                                <template x-for="assignee in assignees" :key="assignee.id">
+                                    <span class="inline-flex items-center gap-1 bg-indigo-50 text-indigo-800 text-xs font-medium px-2.5 py-1 rounded-full">
+                                        <span x-text="assignee.name"></span>
+                                        @can('manageAssignees', $task)
+                                            <button type="button"
+                                                    @click="removeAssignee(assignee.id, assignee.name)"
+                                                    :disabled="removingAssigneeId === assignee.id"
+                                                    class="ml-0.5 text-indigo-400 hover:text-indigo-700 focus:outline-none leading-none disabled:opacity-50"
+                                                    :aria-label="'Hapus ' + assignee.name + ' dari penanggung jawab'">
+                                                <template x-if="removingAssigneeId !== assignee.id">
+                                                    <span>&times;</span>
+                                                </template>
+                                                <template x-if="removingAssigneeId === assignee.id">
+                                                    <svg class="animate-spin w-2.5 h-2.5 text-indigo-600 inline" fill="none" viewBox="0 0 24 24">
+                                                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                                        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                                    </svg>
+                                                </template>
+                                            </button>
+                                        @endcan
+                                    </span>
+                                </template>
 
                                 @can('manageAssignees', $task)
-                                    <button type="button"
-                                            class="inline-flex items-center gap-0.5 text-xs text-indigo-500 hover:text-indigo-700 font-medium focus:outline-none transition-colors">
-                                        + Tambah
-                                    </button>
+                                    <div class="relative inline-block" @click.outside="openAddAssignee = false">
+                                        <button type="button"
+                                                @click="openAddAssignee = !openAddAssignee"
+                                                :disabled="addingAssignee"
+                                                class="inline-flex items-center gap-1 text-xs font-medium px-2.5 py-0.5 rounded-full border border-dashed border-indigo-300 text-indigo-600 hover:text-indigo-800 hover:border-indigo-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-1 transition-colors disabled:opacity-50">
+                                            <template x-if="!addingAssignee">
+                                                <span>+ Tambah</span>
+                                            </template>
+                                            <template x-if="addingAssignee">
+                                                <span class="inline-flex items-center gap-1">
+                                                    <svg class="animate-spin w-3 h-3 text-indigo-600" fill="none" viewBox="0 0 24 24">
+                                                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                                        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                                    </svg>
+                                                    Menyimpan...
+                                                </span>
+                                            </template>
+                                        </button>
+
+                                        {{-- Dropdown pilihan anggota --}}
+                                        <div x-show="openAddAssignee"
+                                             x-cloak
+                                             x-transition:enter="transition ease-out duration-100"
+                                             x-transition:enter-start="transform opacity-0 scale-95"
+                                             x-transition:enter-end="transform opacity-100 scale-100"
+                                             x-transition:leave="transition ease-in duration-75"
+                                             x-transition:leave-start="transform opacity-100 scale-100"
+                                             x-transition:leave-end="transform opacity-0 scale-95"
+                                             @keydown.escape.window="openAddAssignee = false"
+                                             class="absolute left-0 mt-1 w-48 bg-white border border-gray-200 rounded-lg shadow-lg py-1 z-30 max-h-48 overflow-y-auto">
+                                            <template x-if="availableUsers.length > 0">
+                                                <div>
+                                                    <template x-for="user in availableUsers" :key="user.id">
+                                                        <button type="button"
+                                                                @click="addAssignee(user.id)"
+                                                                class="w-full text-left px-3 py-1.5 text-xs text-gray-700 hover:bg-indigo-50 hover:text-indigo-900 transition-colors flex items-center justify-between">
+                                                            <span x-text="user.name"></span>
+                                                        </button>
+                                                    </template>
+                                                </div>
+                                            </template>
+                                            <template x-if="availableUsers.length === 0">
+                                                <div class="px-3 py-2 text-xs text-gray-400 italic">
+                                                    Semua anggota sudah ditugaskan
+                                                </div>
+                                            </template>
+                                        </div>
+                                    </div>
                                 @endcan
                             </div>
                         </div>

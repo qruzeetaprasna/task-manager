@@ -26,8 +26,8 @@
             {{-- Kanan: Badge, Nama, Avatar, Keluar --}}
             <div class="flex items-center gap-3">
                 @if (Auth::user()?->isAdmin())
-                    <span class="px-2 py-1 bg-indigo-600 text-white text-xs font-bold rounded tracking-wider uppercase">
-                        ADMIN
+                    <span class="px-2.5 py-0.5 bg-violet-100 text-violet-800 text-xs font-bold rounded-full tracking-wider uppercase">
+                        Admin
                     </span>
                 @endif
 
