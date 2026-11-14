@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Http\Requests\StoreTaskRequest;
+use App\Http\Requests\UpdateTaskRequest;
 use App\Models\Task;
 use App\Models\User;
 use Illuminate\Database\Eloquent\Builder;
@@ -92,5 +93,39 @@ class TaskController extends Controller
         return redirect()
             ->route('tasks.index')
             ->with('success', 'Tugas berhasil ditambahkan.');
+    }
+
+    public function update(UpdateTaskRequest $request, Task $task): JsonResponse|RedirectResponse
+    {
+        $task->update($request->validated());
+
+        if ($request->expectsJson()) {
+            return response()->json([
+                'id' => $task->id,
+                'title' => $task->title,
+                'is_done' => $task->is_done,
+            ]);
+        }
+
+        return redirect()
+            ->route('tasks.index')
+            ->with('success', 'Tugas berhasil diperbarui.');
+    }
+
+    public function destroy(Request $request, Task $task): JsonResponse|RedirectResponse
+    {
+        Gate::authorize('delete', $task);
+
+        $task->delete();
+
+        if ($request->expectsJson()) {
+            return response()->json([
+                'message' => 'Tugas berhasil dihapus.',
+            ]);
+        }
+
+        return redirect()
+            ->route('tasks.index')
+            ->with('success', 'Tugas berhasil dihapus.');
     }
 }
