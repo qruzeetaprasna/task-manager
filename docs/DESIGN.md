@@ -51,7 +51,7 @@ Font Inter (bobot 400, 500, 600, 700) dengan cadangan `system-ui, sans-serif`.
 - Input dan tombol: radius 8px, tinggi 44px (target sentuh minimal 44px).
 - Chip dan pill: bentuk kapsul (`rounded-full`).
 - Wadah konten: lebar maksimal 960px, di tengah, padding horizontal 24px, vertikal 32px.
-- Jarak antar bagian utama (judul, filter, form, daftar): 24px.
+- Jarak antar bagian utama (judul, baris filter dan tombol tambah tugas, daftar): 24px.
 
 ## 3. Tata letak halaman `tasks.index`
 
@@ -62,10 +62,13 @@ Urutan dari atas ke bawah:
    Di kanan: badge Admin (hanya admin), nama pengguna, tombol "Keluar".
 2. **Judul halaman** "Tugas" dengan keterangan kecil di bawahnya.
    Admin: "Menampilkan semua tugas tim." Member: "Menampilkan tugas yang kamu buat atau ditugaskan kepadamu."
-3. **Tab filter** berupa tiga tautan biasa (`?status=`): Semua, Belum selesai, Selesai.
-   Yang aktif berlatar aksen dengan teks putih; yang lain putih dengan border.
-4. **Form tambah tugas** dalam kartu: label "Judul tugas", input, penghitung "N / 100" di kanan label,
-   input "Deskripsi (opsional)", dan tombol primer "Tambah tugas".
+3. **Baris filter dan aksi**: tab filter di kiri berupa tiga tautan biasa (`?status=`): Semua,
+   Belum selesai, Selesai. Yang aktif berlatar aksen dengan teks putih; yang lain putih dengan border.
+   Tombol "+ Tambah tugas" sejajar di kanan dan tetap terlihat saat tab filter digulir horizontal pada layar sempit.
+4. Saat ditekan, tombol membuka modal `x-modal` berjudul
+   "Tambah tugas". Di dalam modal: label "Judul tugas", input, penghitung "N / 100" di kanan label,
+   input "Deskripsi (opsional)", dan tombol primer "Tambah tugas". Modal juga menyediakan tombol "Batal"
+   dan tombol tutup.
 5. **Daftar kartu tugas.**
 
 ### Kartu tugas
@@ -84,6 +87,7 @@ Susunan satu baris: checkbox di kiri, isi di tengah (fleksibel), tombol aksi di 
 
 | Elemen | Perilaku |
 |---|---|
+| Tombol tambah tugas | Membuka modal `x-modal` lewat event Alpine `open-modal`. Modal bisa ditutup dengan tombol tutup, tombol Batal, Escape, atau klik area luar |
 | Penghitung judul | Tampil "N / 100". Mulai 90 karakter: teks `amber-700`. Lebih dari 100: merah dan tombol Tambah nonaktif. Hitung setelah `trim()` |
 | Error validasi | Pesan dari backend tampil di bawah input terkait (merah, 13px). Input yang salah diberi border merah |
 | Checkbox selesai | Kirim `PUT /tasks/{task}` lewat fetch (JSON), perbarui tampilan kartu tanpa reload. Gagal: kembalikan checkbox dan tampilkan pesan |

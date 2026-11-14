@@ -105,51 +105,67 @@
         {{-- ======================================================= --}}
         {{-- Tab filter status                                        --}}
         {{-- ======================================================= --}}
-        <div class="flex items-center gap-2 mb-6 overflow-x-auto pb-0.5">
-            {{-- Semua --}}
-            <a href="{{ Route::has('tasks.index') ? route('tasks.index') : url('/tasks') }}"
-               class="inline-flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors whitespace-nowrap
-                      {{ empty($status)
-                          ? 'bg-indigo-600 text-white shadow-sm'
-                          : 'bg-white text-gray-600 border border-gray-200 hover:bg-gray-50' }}">
-                Semua
-                <span class="text-xs px-1.5 py-0.5 rounded font-semibold leading-none
-                             {{ empty($status) ? 'bg-indigo-500 text-white' : 'bg-gray-100 text-gray-500' }}">
-                    {{ $totalCount }}
-                </span>
-            </a>
+        <div class="mb-6 flex items-center gap-4">
+            <div class="flex min-w-0 flex-1 items-center gap-2 overflow-x-auto pb-0.5">
+                {{-- Semua --}}
+                <a href="{{ Route::has('tasks.index') ? route('tasks.index') : url('/tasks') }}"
+                   class="inline-flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors whitespace-nowrap
+                          {{ empty($status)
+                              ? 'bg-indigo-600 text-white shadow-sm'
+                              : 'bg-white text-gray-600 border border-gray-200 hover:bg-gray-50' }}">
+                    Semua
+                    <span class="text-xs px-1.5 py-0.5 rounded font-semibold leading-none
+                                 {{ empty($status) ? 'bg-indigo-500 text-white' : 'bg-gray-100 text-gray-500' }}">
+                        {{ $totalCount }}
+                    </span>
+                </a>
 
-            {{-- Belum selesai --}}
-            <a href="{{ Route::has('tasks.index') ? route('tasks.index', ['status' => 'pending']) : url('/tasks?status=pending') }}"
-               class="inline-flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors whitespace-nowrap
-                      {{ $status === 'pending'
-                          ? 'bg-indigo-600 text-white shadow-sm'
-                          : 'bg-white text-gray-600 border border-gray-200 hover:bg-gray-50' }}">
-                Belum selesai
-                <span class="text-xs px-1.5 py-0.5 rounded font-semibold leading-none
-                             {{ $status === 'pending' ? 'bg-indigo-500 text-white' : 'bg-gray-100 text-gray-500' }}">
-                    {{ $runningCount }}
-                </span>
-            </a>
+                {{-- Belum selesai --}}
+                <a href="{{ Route::has('tasks.index') ? route('tasks.index', ['status' => 'pending']) : url('/tasks?status=pending') }}"
+                   class="inline-flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors whitespace-nowrap
+                          {{ $status === 'pending'
+                              ? 'bg-indigo-600 text-white shadow-sm'
+                              : 'bg-white text-gray-600 border border-gray-200 hover:bg-gray-50' }}">
+                    Belum selesai
+                    <span class="text-xs px-1.5 py-0.5 rounded font-semibold leading-none
+                                 {{ $status === 'pending' ? 'bg-indigo-500 text-white' : 'bg-gray-100 text-gray-500' }}">
+                        {{ $runningCount }}
+                    </span>
+                </a>
 
-            {{-- Selesai --}}
-            <a href="{{ Route::has('tasks.index') ? route('tasks.index', ['status' => 'done']) : url('/tasks?status=done') }}"
-               class="inline-flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors whitespace-nowrap
-                      {{ $status === 'done'
-                          ? 'bg-indigo-600 text-white shadow-sm'
-                          : 'bg-white text-gray-600 border border-gray-200 hover:bg-gray-50' }}">
-                Selesai
-                <span class="text-xs px-1.5 py-0.5 rounded font-semibold leading-none
-                             {{ $status === 'done' ? 'bg-indigo-500 text-white' : 'bg-gray-100 text-gray-500' }}">
-                    {{ $doneCount }}
-                </span>
-            </a>
+                {{-- Selesai --}}
+                <a href="{{ Route::has('tasks.index') ? route('tasks.index', ['status' => 'done']) : url('/tasks?status=done') }}"
+                   class="inline-flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors whitespace-nowrap
+                          {{ $status === 'done'
+                              ? 'bg-indigo-600 text-white shadow-sm'
+                              : 'bg-white text-gray-600 border border-gray-200 hover:bg-gray-50' }}">
+                    Selesai
+                    <span class="text-xs px-1.5 py-0.5 rounded font-semibold leading-none
+                                 {{ $status === 'done' ? 'bg-indigo-500 text-white' : 'bg-gray-100 text-gray-500' }}">
+                        {{ $doneCount }}
+                    </span>
+                </a>
+            </div>
+
+            <button
+                type="button"
+                x-data=""
+                x-on:click="$dispatch('open-modal', 'create-task-modal')"
+                aria-haspopup="dialog"
+                class="inline-flex min-h-11 shrink-0 items-center gap-2 whitespace-nowrap rounded-lg bg-indigo-600 px-5 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2"
+            >
+                <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+                </svg>
+                Tambah tugas
+            </button>
         </div>
 
         {{-- ======================================================= --}}
-        {{-- Form tambah tugas (Alpine.js)                           --}}
+        {{-- Modal tambah tugas (Alpine.js)                           --}}
         {{-- ======================================================= --}}
-        <form x-data="{
+        <x-modal name="create-task-modal" :show="$errors->has('title') || $errors->has('description')" focusable>
+            <form x-data="{
                 title: '',
                 description: '',
                 errors: {},
@@ -222,11 +238,35 @@
               @submit.prevent="submitForm"
               method="POST"
               action="{{ route('tasks.store') }}"
-              class="bg-white border border-gray-200 rounded-xl p-5 mb-6 shadow-sm">
+              class="p-6 sm:p-8"
+              role="dialog"
+              aria-modal="true"
+              aria-labelledby="create-task-heading"
+              aria-describedby="create-task-description">
             @csrf
 
+            <div class="flex items-start justify-between gap-4">
+                <div>
+                    <h2 id="create-task-heading" class="text-lg font-semibold text-gray-900">Tambah tugas</h2>
+                    <p id="create-task-description" class="mt-1 text-sm text-gray-600">
+                        Isi judul tugas dan detail jika diperlukan.
+                    </p>
+                </div>
+                <button
+                    type="button"
+                    x-on:click="$dispatch('close')"
+                    x-bind:disabled="submitting"
+                    aria-label="Tutup form tambah tugas"
+                    class="rounded-md p-2 text-gray-500 hover:bg-gray-100 hover:text-gray-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 disabled:opacity-50"
+                >
+                    <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18 18 6M6 6l12 12" />
+                    </svg>
+                </button>
+            </div>
+
             {{-- Judul + counter --}}
-            <div class="flex items-center justify-between mb-2">
+            <div class="mt-6 flex items-center justify-between mb-2">
                 <label for="title-input" class="text-sm font-medium text-gray-700">Judul tugas</label>
                 <span class="text-xs transition-colors"
                       :class="counterClass"
@@ -269,7 +309,15 @@
             @enderror
 
             {{-- Tombol submit (kanan) --}}
-            <div class="flex justify-end mt-4">
+            <div class="mt-6 flex justify-end gap-3">
+                <x-secondary-button
+                    type="button"
+                    x-on:click="$dispatch('close')"
+                    x-bind:disabled="submitting"
+                    class="min-h-11 rounded-lg normal-case"
+                >
+                    Batal
+                </x-secondary-button>
                 <button type="submit"
                         :disabled="submitting || isInvalid"
                         class="inline-flex items-center gap-2 px-5 py-2.5 bg-indigo-600 text-white text-sm font-semibold rounded-lg hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed transition-colors">
@@ -292,7 +340,8 @@
                     </template>
                 </button>
             </div>
-        </form>
+            </form>
+        </x-modal>
 
         {{-- ======================================================= --}}
         {{-- Daftar kartu tugas                                       --}}
