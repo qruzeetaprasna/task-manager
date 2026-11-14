@@ -19,11 +19,12 @@ Aplikasi web untuk mencatat tugas tim dan menetapkan anggota sebagai penanggung 
 - Registrasi, login, dan logout.
 - Daftar tugas dengan filter semua, belum selesai, dan selesai.
 - Membuat tugas dengan deskripsi opsional; mengubah judul, deskripsi, dan status; serta menghapus tugas.
+- Form tambah tugas ditampilkan dalam modal.
 - Menambah dan menghapus penanggung jawab tugas.
 - Daftar admin mencakup semua tugas. Daftar member hanya mencakup tugas yang dibuat atau ditugaskan kepadanya.
 - Tombol ubah, hapus, dan kelola penanggung jawab mengikuti hak akses masing-masing peran.
 - Halaman profil untuk memperbarui nama, email, kata sandi, atau menghapus akun; menu profil pada navbar juga menyediakan tautan profil dan keluar.
-- Admin dapat melihat daftar pengguna, mencari dan memfilter pengguna pada halaman aktif, serta mengubah peran admin/member.
+- Admin dapat membuat akun admin atau member, melihat daftar pengguna, mencari dan memfilter pengguna pada halaman aktif, serta mengubah peran admin/member.
 - Tes otomatis untuk autentikasi dan operasi tugas.
 
 ## Cara menjalankan
@@ -79,11 +80,13 @@ Route tugas hanya dapat digunakan setelah login. Route registrasi dan login ters
 | GET | `/login` | Menampilkan formulir login |
 | POST | `/login` | Memproses login |
 | POST | `/logout` | Memproses logout |
+| GET | `/` | Mengarahkan pengguna yang sudah login ke daftar tugas |
 | GET | `/profile` | Menampilkan halaman profil |
 | PATCH | `/profile` | Memperbarui nama atau email |
 | DELETE | `/profile` | Menghapus akun setelah kata sandi saat ini dikonfirmasi |
 | PUT | `/password` | Memperbarui kata sandi setelah kata sandi saat ini dikonfirmasi |
 | GET | `/admin/users` | Menampilkan daftar pengguna untuk admin (menerima JSON jika diminta) |
+| POST | `/admin/users` | Membuat akun pengguna dengan peran yang dipilih (admin saja) |
 | PATCH | `/admin/users/{user}/role` | Mengubah peran pengguna untuk admin |
 | GET | `/tasks` | Menampilkan daftar tugas; filter memakai `?status=pending` atau `?status=done` |
 | POST | `/tasks` | Membuat tugas |
@@ -103,7 +106,7 @@ Tidak ada route halaman detail tugas tersendiri. Nilai filter status selain `pen
 | Mengubah tugas | Semua tugas | Tugas yang dibuat atau ditugaskan kepadanya |
 | Menghapus tugas | Semua tugas | Hanya tugas yang dibuatnya |
 | Menambah atau menghapus penanggung jawab | Semua tugas | Hanya tugas yang dibuatnya |
-| Melihat daftar pengguna dan mengubah peran | Ya | Tidak (HTTP `403`) |
+| Melihat daftar pengguna, membuat pengguna, dan mengubah peran | Ya | Tidak (HTTP `403`) |
 | Mengelola profil sendiri | Ya | Ya |
 | Menghapus akun sendiri setelah konfirmasi kata sandi | Ya | Ya |
 
@@ -111,7 +114,7 @@ Hak akses tugas diperiksa di backend melalui `TaskPolicy`. Admin melewati seluru
 
 ## Asumsi dan keputusan desain
 
-- Registrasi membuat akun dengan peran `member`; formulir registrasi tidak menerima pilihan peran. Akun admin dibuat oleh seeder.
+- Registrasi publik selalu membuat akun dengan peran `member`; formulir registrasi tidak menerima pilihan peran. Admin dapat membuat akun admin atau member melalui halaman pengelolaan pengguna, dan seeder juga membuat satu akun admin demo.
 - Pembuat tugas tidak otomatis menjadi penanggung jawab. Tugas tanpa penanggung jawab diperbolehkan.
 - Pengguna yang belum login diarahkan ke login untuk route tugas. Permintaan pengguna yang sudah login tetapi tidak berhak mendapat HTTP `403`.
 - Judul wajib berupa teks, tidak boleh hanya spasi, dan maksimal 100 karakter. Deskripsi boleh kosong. Perubahan tugas menerima kolom yang dikirim saja.
@@ -120,12 +123,13 @@ Hak akses tugas diperiksa di backend melalui `TaskPolicy`. Admin melewati seluru
 - Penanggung jawab harus merujuk ke pengguna yang ada dan tidak boleh ditambahkan dua kali pada tugas yang sama; kesalahan validasi pada request JSON mendapat HTTP `422`.
 - Pembuatan tugas melalui request JSON mendapat HTTP `201`; perubahan dan penghapusan melalui JSON mendapat HTTP `200`. Form biasa kembali ke daftar tugas dengan pesan sesi.
 - Daftar pengguna admin menampilkan 15 pengguna per halaman; pencarian dan filter peran pada tampilan hanya berlaku untuk halaman yang sedang dibuka.
+- Form admin untuk membuat pengguna mewajibkan nama, email unik, kata sandi minimal 8 karakter, dan peran `admin` atau `member`.
 - Admin terakhir tidak dapat mengubah perannya sendiri menjadi member. Perubahan peran admin membutuhkan nilai `admin` atau `member`.
 - Perubahan email profil menghapus tanda verifikasi email; form profil hanya menampilkan pengiriman ulang verifikasi jika pengguna belum terverifikasi.
 
 ## Validasi dan keamanan
 
-Judul divalidasi di server dan diperiksa juga pada tampilan sebelum dikirim. Form menggunakan perlindungan CSRF Laravel; permintaan JavaScript mengirim token CSRF. `TaskPolicy` memeriksa hak akses tugas, sedangkan `UserPolicy` membatasi daftar pengguna dan perubahan peran untuk admin. Atribut kata sandi di model di-hash dan disembunyikan dari serialisasi pengguna.
+Judul divalidasi di server dan diperiksa juga pada tampilan sebelum dikirim. Form menggunakan perlindungan CSRF Laravel; permintaan JavaScript mengirim token CSRF. `TaskPolicy` memeriksa hak akses tugas, sedangkan `UserPolicy` membatasi daftar pengguna dan perubahan peran untuk admin. Endpoint pembuatan pengguna memeriksa peran admin di controller. Atribut kata sandi di model di-hash dan disembunyikan dari serialisasi pengguna.
 
 ## Pengujian
 
@@ -137,7 +141,7 @@ php artisan test
 
 ## Belum dikerjakan dan keterbatasan
 
-- Halaman admin hanya menyediakan daftar pengguna dan perubahan peran; pembuatan akun admin dilakukan melalui seeder, bukan halaman pengelolaan.
+- Pencarian dan filter peran pada daftar admin hanya mencakup halaman pagination yang sedang dibuka.
 - Tag tugas belum tersedia.
 - Konfigurasi Docker belum tersedia.
 - Belum ada halaman detail tugas; pengubahan dilakukan dari daftar tugas.
