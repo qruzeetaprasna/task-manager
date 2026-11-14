@@ -62,7 +62,24 @@
             $totalCount   = $tasks->count();
         @endphp
 
-        <div class="flex items-start justify-between mb-5">
+        <div x-data="{
+                runningCount: {{ $runningCount }},
+                doneCount: {{ $doneCount }},
+                totalCount: {{ $totalCount }}
+             }"
+             @task-status-changed.window="
+                if ($event.detail.is_done) {
+                    runningCount--;
+                    doneCount++;
+                } else {
+                    runningCount++;
+                    doneCount--;
+                }
+             "
+             @task-deleted.window="
+                totalCount--;
+             "
+             class="flex items-start justify-between mb-5">
             <div>
                 <h1 class="text-3xl font-bold text-gray-900 leading-tight">Tugas</h1>
                 <p class="text-sm text-gray-500 mt-0.5">
@@ -76,11 +93,11 @@
             <div class="flex items-center gap-4 text-sm text-gray-500 pt-1">
                 <span class="flex items-center gap-1.5">
                     <span class="inline-block w-2 h-2 rounded-full bg-indigo-500"></span>
-                    {{ $runningCount }} Berjalan
+                    <span x-text="runningCount + ' Berjalan'">{{ $runningCount }} Berjalan</span>
                 </span>
                 <span class="flex items-center gap-1.5">
                     <span class="inline-block w-2 h-2 rounded-full bg-green-500"></span>
-                    {{ $doneCount }} Selesai
+                    <span x-text="doneCount + ' Selesai'">{{ $doneCount }} Selesai</span>
                 </span>
             </div>
         </div>
@@ -282,16 +299,72 @@
         {{-- ======================================================= --}}
         <div class="space-y-3">
             @forelse ($tasks as $task)
-                <div class="bg-white border border-gray-200 rounded-xl p-5 shadow-sm">
+                <div x-data="{
+                        id: {{ $task->id }},
+                        title: @js($task->title),
+                        description: @js($task->description ?? ''),
+                        isDone: {{ $task->is_done ? 'true' : 'false' }},
+                        deleted: false,
+                        updating: false,
+                        async toggleDone() {
+                            if (this.updating) return;
+                            this.updating = true;
+                            const newStatus = !this.isDone;
+                            try {
+                                const csrfToken = document.querySelector('meta[name=\'csrf-token\']')?.getAttribute('content');
+                                const response = await fetch(`/tasks/${this.id}`, {
+                                    method: 'PUT',
+                                    headers: {
+                                        'Content-Type': 'application/json',
+                                        'Accept': 'application/json',
+                                        'X-CSRF-TOKEN': csrfToken
+                                    },
+                                    body: JSON.stringify({ is_done: newStatus })
+                                });
+
+                                if (response.ok) {
+                                    const data = await response.json();
+                                    this.isDone = data.is_done;
+                                    window.dispatchEvent(new CustomEvent('toast', { detail: 'Tugas berhasil diperbarui.' }));
+                                    window.dispatchEvent(new CustomEvent('task-status-changed', { detail: { id: this.id, is_done: this.isDone } }));
+                                } else {
+                                    const data = await response.json().catch(() => ({}));
+                                    alert(data.message || 'Gagal memperbarui status tugas.');
+                                }
+                            } catch (e) {
+                                alert('Gagal menghubungi server.');
+                            } finally {
+                                this.updating = false;
+                            }
+                        }
+                     }"
+                     x-show="!deleted"
+                     x-cloak
+                     x-transition:leave="transition ease-in duration-200"
+                     x-transition:leave-start="opacity-100 scale-100"
+                     x-transition:leave-end="opacity-0 scale-95"
+                     @task-updated.window="if ($event.detail.id === id) { title = $event.detail.title; description = $event.detail.description; }"
+                     @task-deleted.window="if ($event.detail.id === id) { deleted = true; }"
+                     class="border border-gray-200 rounded-xl p-5 shadow-sm transition-colors"
+                     :class="isDone ? 'bg-gray-50' : 'bg-white'">
                     <div class="flex items-start gap-4">
 
                         {{-- Checkbox --}}
                         <div class="shrink-0 mt-0.5">
-                            <input type="checkbox"
-                                   @checked($task->is_done)
-                                   class="w-5 h-5 rounded border-gray-300 text-indigo-600 accent-indigo-600 cursor-not-allowed"
-                                   aria-label="Status tugas: {{ $task->title }}"
-                                   disabled>
+                            @can('update', $task)
+                                <input type="checkbox"
+                                       :checked="isDone"
+                                       @change="toggleDone()"
+                                       :disabled="updating"
+                                       class="w-5 h-5 rounded border-gray-300 text-indigo-600 accent-indigo-600 focus:ring-indigo-500 cursor-pointer disabled:opacity-50"
+                                       aria-label="Status tugas: {{ $task->title }}">
+                            @else
+                                <input type="checkbox"
+                                       :checked="isDone"
+                                       class="w-5 h-5 rounded border-gray-300 text-indigo-600 accent-indigo-600 cursor-not-allowed opacity-60"
+                                       aria-label="Status tugas: {{ $task->title }}"
+                                       disabled>
+                            @endcan
                         </div>
 
                         {{-- Konten utama --}}
@@ -299,23 +372,25 @@
 
                             {{-- Judul + pill Selesai --}}
                             <div class="flex items-center gap-2 flex-wrap">
-                                <h3 class="text-[15px] font-semibold leading-snug
-                                           {{ $task->is_done ? 'text-gray-400 line-through' : 'text-gray-900' }}">
+                                <h3 class="text-[15px] font-semibold leading-snug transition-colors"
+                                    :class="isDone ? 'text-gray-400 line-through' : 'text-gray-900'"
+                                    x-text="title">
                                     {{ $task->title }}
                                 </h3>
-                                @if ($task->is_done)
-                                    <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold bg-green-100 text-green-700">
-                                        Selesai
-                                    </span>
-                                @endif
+                                <span x-show="isDone"
+                                      class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold bg-green-100 text-green-700">
+                                    Selesai
+                                </span>
                             </div>
 
                             {{-- Deskripsi (jika ada) --}}
-                            @if ($task->description)
-                                <p class="text-sm text-gray-600 mt-1 {{ $task->is_done ? 'text-gray-400 line-through' : '' }}">
+                            <template x-if="description">
+                                <p class="text-sm mt-1 transition-colors"
+                                   :class="isDone ? 'text-gray-400 line-through' : 'text-gray-600'"
+                                   x-text="description">
                                     {{ $task->description }}
                                 </p>
-                            @endif
+                            </template>
 
                             {{-- Meta: pembuat & tanggal --}}
                             @if (Auth::user()->isAdmin() || Auth::id() !== $task->created_by)
@@ -360,18 +435,16 @@
                         <div class="flex items-center gap-2 shrink-0 self-start mt-0.5">
                             @can('update', $task)
                                 <button type="button"
-                                        class="px-3 py-1.5 text-xs font-medium text-gray-600 bg-white border border-gray-200
-                                               rounded-lg hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-gray-300
-                                               transition-colors">
+                                        @click="$dispatch('open-edit-task', { id: id, title: title, description: description })"
+                                        class="px-3 py-1.5 text-xs font-medium text-gray-600 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-gray-300 transition-colors">
                                     Edit
                                 </button>
                             @endcan
 
                             @can('delete', $task)
                                 <button type="button"
-                                        class="px-3 py-1.5 text-xs font-medium text-red-600 bg-white border border-red-200
-                                               rounded-lg hover:bg-red-50 focus:outline-none focus:ring-2 focus:ring-red-300
-                                               transition-colors">
+                                        @click="$dispatch('open-delete-task', { id: id })"
+                                        class="px-3 py-1.5 text-xs font-medium text-red-600 bg-white border border-red-200 rounded-lg hover:bg-red-50 focus:outline-none focus:ring-2 focus:ring-red-300 transition-colors">
                                     Hapus
                                 </button>
                             @endcan
@@ -391,4 +464,204 @@
         </div>
 
     </div>
+
+    {{-- ======================================================= --}}
+    {{-- Modal Edit Tugas (x-modal)                              --}}
+    {{-- ======================================================= --}}
+    <x-modal name="edit-task-modal" focusable>
+        <form x-data="{
+                taskId: null,
+                title: '',
+                description: '',
+                errors: {},
+                submitting: false,
+                get charCount() {
+                    return this.title.trim().length;
+                },
+                get counterClass() {
+                    if (this.charCount > 100) return 'text-red-600 font-semibold';
+                    if (this.charCount >= 90) return 'text-amber-700 font-medium';
+                    return 'text-gray-400';
+                },
+                get isInvalid() {
+                    return this.charCount === 0 || this.charCount > 100;
+                },
+                clearError(field) {
+                    if (this.errors[field]) {
+                        delete this.errors[field];
+                    }
+                },
+                async submitEdit() {
+                    this.errors = {};
+                    const trimmedTitle = this.title.trim();
+                    if (!trimmedTitle) {
+                        this.errors.title = ['Judul tugas wajib diisi dan tidak boleh hanya spasi.'];
+                        return;
+                    }
+                    if (trimmedTitle.length > 100) {
+                        this.errors.title = ['Judul tugas maksimal 100 karakter.'];
+                        return;
+                    }
+
+                    this.submitting = true;
+
+                    try {
+                        const csrfToken = document.querySelector('meta[name=\'csrf-token\']')?.getAttribute('content');
+                        const response = await fetch(`/tasks/${this.taskId}`, {
+                            method: 'PUT',
+                            headers: {
+                                'Content-Type': 'application/json',
+                                'Accept': 'application/json',
+                                'X-CSRF-TOKEN': csrfToken
+                            },
+                            body: JSON.stringify({
+                                title: trimmedTitle,
+                                description: this.description ? this.description.trim() : null
+                            })
+                        });
+
+                        if (response.ok) {
+                            const data = await response.json();
+                            window.dispatchEvent(new CustomEvent('task-updated', {
+                                detail: {
+                                    id: this.taskId,
+                                    title: trimmedTitle,
+                                    description: this.description ? this.description.trim() : null
+                                }
+                            }));
+                            window.dispatchEvent(new CustomEvent('close-modal', { detail: 'edit-task-modal' }));
+                            window.dispatchEvent(new CustomEvent('toast', { detail: 'Tugas berhasil diperbarui.' }));
+                        } else if (response.status === 422) {
+                            const data = await response.json();
+                            this.errors = data.errors || {};
+                        } else {
+                            const data = await response.json().catch(() => ({}));
+                            alert(data.message || 'Gagal memperbarui tugas.');
+                        }
+                    } catch (e) {
+                        alert('Gagal menghubungi server.');
+                    } finally {
+                        this.submitting = false;
+                    }
+                }
+             }"
+             @open-edit-task.window="
+                taskId = $event.detail.id;
+                title = $event.detail.title;
+                description = $event.detail.description || '';
+                errors = {};
+                $dispatch('open-modal', 'edit-task-modal');
+             "
+             @submit.prevent="submitEdit"
+             class="p-6">
+            @csrf
+
+            <h2 class="text-lg font-bold text-gray-900 mb-4">Edit Tugas</h2>
+
+            {{-- Judul + counter --}}
+            <div class="flex items-center justify-between mb-2">
+                <label for="edit-title-input" class="text-sm font-medium text-gray-700">Judul tugas</label>
+                <span class="text-xs transition-colors"
+                      :class="counterClass"
+                      x-text="charCount + ' / 100'">0 / 100</span>
+            </div>
+            <input id="edit-title-input"
+                   name="title"
+                   type="text"
+                   x-model="title"
+                   @input="clearError('title')"
+                   placeholder="Tuliskan judul tugas yang jelas..."
+                   class="w-full rounded-lg px-3 py-2.5 text-sm text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-colors"
+                   :class="errors.title ? 'border-red-500 ring-1 ring-red-500' : 'border border-gray-300'"
+                   :disabled="submitting">
+            <template x-if="errors.title">
+                <p class="text-[13px] text-red-600 mt-1" x-text="errors.title[0]"></p>
+            </template>
+
+            {{-- Deskripsi --}}
+            <label for="edit-desc-input" class="block text-sm font-medium text-gray-700 mt-4 mb-2">
+                Deskripsi (opsional)
+            </label>
+            <textarea id="edit-desc-input"
+                      name="description"
+                      x-model="description"
+                      @input="clearError('description')"
+                      rows="3"
+                      placeholder="Tambahkan detail atau instruksi tugas jika diperlukan..."
+                      class="w-full rounded-lg px-3 py-2.5 text-sm text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 resize-none transition-colors"
+                      :class="errors.description ? 'border-red-500 ring-1 ring-red-500' : 'border border-gray-300'"
+                      :disabled="submitting"></textarea>
+            <template x-if="errors.description">
+                <p class="text-[13px] text-red-600 mt-1" x-text="errors.description[0]"></p>
+            </template>
+
+            {{-- Tombol Batal & Simpan --}}
+            <div class="mt-6 flex justify-end gap-3">
+                <x-secondary-button type="button" x-on:click="$dispatch('close')" :disabled="submitting">
+                    Batal
+                </x-secondary-button>
+
+                <button type="submit"
+                        :disabled="submitting || isInvalid"
+                        class="inline-flex items-center px-4 py-2 bg-indigo-600 border border-transparent rounded-lg font-semibold text-xs text-white uppercase tracking-widest hover:bg-indigo-700 focus:bg-indigo-700 active:bg-indigo-900 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 transition ease-in-out duration-150 disabled:opacity-50 disabled:cursor-not-allowed">
+                    <span x-text="submitting ? 'Menyimpan...' : 'Simpan Perubahan'"></span>
+                </button>
+            </div>
+        </form>
+    </x-modal>
+
+    {{-- ======================================================= --}}
+    {{-- Modal Konfirmasi Hapus Tugas (x-modal)                  --}}
+    {{-- ======================================================= --}}
+    <x-modal name="confirm-task-deletion" focusable>
+        <div x-data="{
+                taskId: null,
+                submitting: false,
+                async confirmDelete() {
+                    this.submitting = true;
+                    try {
+                        const csrfToken = document.querySelector('meta[name=\'csrf-token\']')?.getAttribute('content');
+                        const response = await fetch(`/tasks/${this.taskId}`, {
+                            method: 'DELETE',
+                            headers: {
+                                'Accept': 'application/json',
+                                'X-CSRF-TOKEN': csrfToken
+                            }
+                        });
+
+                        if (response.ok) {
+                            window.dispatchEvent(new CustomEvent('task-deleted', { detail: { id: this.taskId } }));
+                            window.dispatchEvent(new CustomEvent('close-modal', { detail: 'confirm-task-deletion' }));
+                            window.dispatchEvent(new CustomEvent('toast', { detail: 'Tugas berhasil dihapus.' }));
+                        } else {
+                            const data = await response.json().catch(() => ({}));
+                            alert(data.message || 'Gagal menghapus tugas.');
+                        }
+                    } catch (e) {
+                        alert('Gagal menghubungi server.');
+                    } finally {
+                        this.submitting = false;
+                    }
+                }
+             }"
+             @open-delete-task.window="
+                taskId = $event.detail.id;
+                $dispatch('open-modal', 'confirm-task-deletion');
+             "
+             class="p-6">
+            <h2 class="text-lg font-medium text-gray-900">
+                Hapus tugas ini? Tindakan ini tidak bisa dibatalkan.
+            </h2>
+
+            <div class="mt-6 flex justify-end gap-3">
+                <x-secondary-button type="button" x-on:click="$dispatch('close')" :disabled="submitting">
+                    Batal
+                </x-secondary-button>
+
+                <x-danger-button type="button" @click="confirmDelete()" :disabled="submitting">
+                    <span x-text="submitting ? 'Menghapus...' : 'Hapus'"></span>
+                </x-danger-button>
+            </div>
+        </div>
+    </x-modal>
 </x-app-layout>
