@@ -597,7 +597,7 @@
 
             {{-- Tombol Batal & Simpan --}}
             <div class="mt-6 flex justify-end gap-3">
-                <x-secondary-button type="button" x-on:click="$dispatch('close')" :disabled="submitting">
+                <x-secondary-button type="button" x-on:click="$dispatch('close')" x-bind:disabled="submitting">
                     Batal
                 </x-secondary-button>
 
@@ -654,11 +654,11 @@
             </h2>
 
             <div class="mt-6 flex justify-end gap-3">
-                <x-secondary-button type="button" x-on:click="$dispatch('close')" :disabled="submitting">
+                <x-secondary-button type="button" x-on:click="$dispatch('close')" x-bind:disabled="submitting">
                     Batal
                 </x-secondary-button>
 
-                <x-danger-button type="button" @click="confirmDelete()" :disabled="submitting">
+                <x-danger-button type="button" @click="confirmDelete()" x-bind:disabled="submitting">
                     <span x-text="submitting ? 'Menghapus...' : 'Hapus'"></span>
                 </x-danger-button>
             </div>
