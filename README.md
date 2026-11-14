@@ -1,58 +1,133 @@
-<p align="center"><a href="https://laravel.com" target="_blank"><img src="https://raw.githubusercontent.com/laravel/art/master/logo-lockup/5%20SVG/2%20CMYK/1%20Full%20Color/laravel-logolockup-cmyk-red.svg" width="400" alt="Laravel Logo"></a></p>
+# Aplikasi Manajemen Tugas
 
-<p align="center">
-<a href="https://github.com/laravel/framework/actions"><img src="https://github.com/laravel/framework/workflows/tests/badge.svg" alt="Build Status"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/dt/laravel/framework" alt="Total Downloads"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/v/laravel/framework" alt="Latest Stable Version"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/l/laravel/framework" alt="License"></a>
-</p>
+Aplikasi web untuk mencatat tugas tim dan menetapkan anggota sebagai penanggung jawab. Admin dapat mengelola semua tugas, sedangkan member bekerja pada tugas yang dibuatnya atau yang ditugaskan kepadanya.
 
-## About Laravel
+## Tech stack
 
-Laravel is a web application framework with expressive, elegant syntax. We believe development must be an enjoyable and creative experience to be truly fulfilling. Laravel takes the pain out of development by easing common tasks used in many web projects, such as:
+| Teknologi | Versi atau konfigurasi |
+|---|---|
+| PHP | `^8.3` (terpasang 8.3.29) |
+| Laravel | `^13.17` (terpasang 13.42.0) |
+| Laravel Breeze | `^2.4`, autentikasi session dengan Blade |
+| Tailwind CSS | `^3.1` (terpasang 3.4.19) |
+| Alpine.js | `^3.4.2` (terpasang 3.17.5) |
+| Vite | `^8.0` (terpasang 8.3.8) |
+| Database | SQLite |
 
-- [Simple, fast routing engine](https://laravel.com/docs/routing).
-- [Powerful dependency injection container](https://laravel.com/docs/container).
-- Multiple back-ends for [session](https://laravel.com/docs/session) and [cache](https://laravel.com/docs/cache) storage.
-- Expressive, intuitive [database ORM](https://laravel.com/docs/eloquent).
-- Database agnostic [schema migrations](https://laravel.com/docs/migrations).
-- [Robust background job processing](https://laravel.com/docs/queues).
-- [Real-time event broadcasting](https://laravel.com/docs/broadcasting).
+## Fitur
 
-Laravel is accessible, powerful, and provides tools required for large, robust applications.
+- Registrasi, login, dan logout.
+- Daftar tugas dengan filter semua, belum selesai, dan selesai.
+- Membuat tugas dengan deskripsi opsional; mengubah judul, deskripsi, dan status; serta menghapus tugas.
+- Menambah dan menghapus penanggung jawab tugas.
+- Daftar admin mencakup semua tugas. Daftar member hanya mencakup tugas yang dibuat atau ditugaskan kepadanya.
+- Tombol ubah, hapus, dan kelola penanggung jawab mengikuti hak akses masing-masing peran.
+- Tes otomatis untuk autentikasi dan operasi tugas.
 
-## Learning Laravel
+## Cara menjalankan
 
-Laravel has the most extensive and thorough [documentation](https://laravel.com/docs) and video tutorial library of all modern web application frameworks, making it a breeze to get started with the framework.
+Prasyarat: Git, PHP 8.3 atau lebih baru dengan ekstensi PDO SQLite, Composer, serta Node.js dan npm.
 
-In addition, [Laracasts](https://laracasts.com) contains thousands of video tutorials on a range of topics including Laravel, modern PHP, unit testing, and JavaScript. Boost your skills by digging into our comprehensive video library.
+Jalankan perintah berikut di PowerShell:
 
-You can also watch bite-sized lessons with real-world projects on [Laravel Learn](https://laravel.com/learn), where you will be guided through building a Laravel application from scratch while learning PHP fundamentals.
-
-## Agentic Development
-
-Laravel's predictable structure and conventions make it ideal for AI coding agents like Claude Code, Cursor, and GitHub Copilot. Install [Laravel Boost](https://laravel.com/docs/ai) to supercharge your AI workflow:
-
-```bash
-composer require laravel/boost --dev
-
-php artisan boost:install
+```powershell
+git clone https://github.com/qruzeetaprasna/task-manager.git
+Set-Location task-manager
+composer install
+Copy-Item .env.example .env
+php artisan key:generate
+if (-not (Test-Path database\database.sqlite)) {
+    New-Item -ItemType File -Path database\database.sqlite
+}
+php artisan migrate --seed
+npm install
+npm run build
+php artisan serve
 ```
 
-Boost provides your agent 15+ tools and skills that help agents build Laravel applications while following best practices.
+Buka `http://127.0.0.1:8000/login` untuk masuk atau `http://127.0.0.1:8000/register` untuk membuat akun. Setelah masuk, daftar tugas tersedia di `http://127.0.0.1:8000/tasks`.
 
-## Contributing
+## Akun demo
 
-Thank you for considering contributing to the Laravel framework! The contribution guide can be found in the [Laravel documentation](https://laravel.com/docs/contributions).
+Semua akun berikut dibuat oleh seeder. Kata sandi masing-masing adalah `password`.
 
-## Code of Conduct
+| Peran | Email | Kata sandi |
+|---|---|---|
+| Admin | `admin@example.com` | `password` |
+| Member | `sari@example.com` | `password` |
+| Member | `andi@example.com` | `password` |
+| Member | `dewi@example.com` | `password` |
 
-In order to ensure that the Laravel community is welcoming to all, please review and abide by the [Code of Conduct](https://laravel.com/docs/contributions#code-of-conduct).
+## Struktur database
 
-## Security Vulnerabilities
+| Tabel | Kolom penting | Relasi |
+|---|---|---|
+| `users` | `id`, `name`, `email` (unik), `password`, `role` (`admin` atau `member`, default `member`), timestamps | Satu pengguna dapat membuat banyak tugas dan menjadi penanggung jawab banyak tugas. |
+| `tasks` | `id`, `title` (maksimal 100 karakter), `description` (boleh kosong), `is_done` (default `false`), `created_by`, timestamps | `created_by` mengacu ke `users.id`; setiap tugas memiliki satu pembuat dan dapat memiliki banyak penanggung jawab. |
+| `task_user` | `id`, `task_id`, `user_id`, timestamps; pasangan `task_id` dan `user_id` unik | Tabel penghubung many-to-many antara tugas dan pengguna. Foreign key tugas dan pengguna menghapus baris penghubung terkait saat data induknya dihapus. |
 
-If you discover a security vulnerability within Laravel, please send an e-mail to Taylor Otwell via [taylor@laravel.com](mailto:taylor@laravel.com). All security vulnerabilities will be promptly addressed.
+## Route
 
-## License
+Route tugas hanya dapat digunakan setelah login. Route registrasi dan login tersedia untuk pengguna yang belum login.
 
-The Laravel framework is open-sourced software licensed under the [MIT license](https://opensource.org/licenses/MIT).
+| Method | URL | Fungsi |
+|---|---|---|
+| GET | `/register` | Menampilkan formulir registrasi |
+| POST | `/register` | Membuat akun member |
+| GET | `/login` | Menampilkan formulir login |
+| POST | `/login` | Memproses login |
+| POST | `/logout` | Memproses logout |
+| GET | `/tasks` | Menampilkan daftar tugas; filter memakai `?status=pending` atau `?status=done` |
+| POST | `/tasks` | Membuat tugas |
+| PUT | `/tasks/{task}` | Mengubah tugas atau status selesai |
+| DELETE | `/tasks/{task}` | Menghapus tugas |
+| POST | `/tasks/{task}/assignees` | Menambah penanggung jawab |
+| DELETE | `/tasks/{task}/assignees/{user}` | Menghapus penanggung jawab |
+
+Tidak ada route halaman detail tugas tersendiri. Nilai filter status selain `pending` dan `done` diperlakukan seperti tanpa filter.
+
+## Hak akses
+
+| Aksi | Admin | Member |
+|---|---|---|
+| Melihat daftar tugas | Semua tugas | Tugas yang dibuat atau ditugaskan kepadanya |
+| Membuat tugas | Ya | Ya |
+| Mengubah tugas | Semua tugas | Tugas yang dibuat atau ditugaskan kepadanya |
+| Menghapus tugas | Semua tugas | Hanya tugas yang dibuatnya |
+| Menambah atau menghapus penanggung jawab | Semua tugas | Hanya tugas yang dibuatnya |
+
+Hak akses tugas diperiksa di backend melalui `TaskPolicy`. Admin melewati seluruh pemeriksaan policy; member mengikuti aturan pada tabel. Tidak ada halaman detail tugas yang memakai aksi `view` policy.
+
+## Asumsi dan keputusan desain
+
+- Registrasi membuat akun dengan peran `member`; formulir registrasi tidak menerima pilihan peran. Akun admin dibuat oleh seeder.
+- Pembuat tugas tidak otomatis menjadi penanggung jawab. Tugas tanpa penanggung jawab diperbolehkan.
+- Pengguna yang belum login diarahkan ke login untuk route tugas. Permintaan pengguna yang sudah login tetapi tidak berhak mendapat HTTP `403`.
+- Judul wajib berupa teks, tidak boleh hanya spasi, dan maksimal 100 karakter. Deskripsi boleh kosong. Perubahan tugas menerima kolom yang dikirim saja.
+- Kata sandi harus dikonfirmasi dan mengikuti `Password::defaults()` Laravel, yang pada konfigurasi ini mensyaratkan minimal 8 karakter. Kata sandi disimpan dalam bentuk hash.
+- Saat membuat tugas, pembuat diambil dari pengguna yang sedang login dan status awal selalu belum selesai.
+- Penanggung jawab harus merujuk ke pengguna yang ada dan tidak boleh ditambahkan dua kali pada tugas yang sama; kesalahan validasi pada request JSON mendapat HTTP `422`.
+- Pembuatan tugas melalui request JSON mendapat HTTP `201`; perubahan dan penghapusan melalui JSON mendapat HTTP `200`. Form biasa kembali ke daftar tugas dengan pesan sesi.
+
+## Validasi dan keamanan
+
+Judul divalidasi di server dan diperiksa juga pada tampilan sebelum dikirim. Form menggunakan perlindungan CSRF Laravel; permintaan JavaScript mengirim token CSRF. Policy tetap memeriksa hak akses di backend, bukan hanya menyembunyikan tombol. Atribut kata sandi di model di-hash dan disembunyikan dari serialisasi pengguna.
+
+## Pengujian
+
+Jalankan tes otomatis dengan:
+
+```powershell
+php artisan test
+```
+
+## Belum dikerjakan dan keterbatasan
+
+- Belum ada halaman atau route untuk mengelola pengguna dan peran. Tautan “Kelola Pengguna” yang tampil untuk admin belum mengarah ke fitur.
+- Tag tugas belum tersedia.
+- Konfigurasi Docker belum tersedia.
+- Belum ada halaman detail tugas; pengubahan dilakukan dari daftar tugas.
+
+## Penggunaan AI
+
+Saya menggunakan AI agent untuk membantu menulis controller, validasi, seeder, dan tampilan Blade/Alpine. Saya sendiri merencanakan arsitektur dan hak akses, menulis migrasi, model, relasi, dan TaskPolicy, menguji semua fitur secara manual, serta mereview kode yang dihasilkan.
