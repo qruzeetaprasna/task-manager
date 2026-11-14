@@ -72,4 +72,26 @@ class AdminUserController extends Controller
             ->route('admin.users.index')
             ->with('success', 'Role pengguna berhasil diperbarui.');
     }
+
+    public function store(Request $request)
+    {
+        $user = $request->user()->isAdmin();
+
+        if(! $user){
+            abort(403);
+        }
+
+        $validated = $request->validate([
+            'name' => ['required', 'string', 'max:255'],
+            'email' => ['required', 'email', 'unique:users,email'],
+            'password' => ['required', 'string', 'min:8'],
+            'role' => ['required', 'in:admin,member']
+        ]);
+
+        User::create($validated);
+
+        return redirect()
+            ->route('admin.users.index')
+            ->with('status', 'User berhasil ditambahkan.');
+    }
 }
